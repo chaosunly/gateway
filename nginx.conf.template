@@ -1,6 +1,8 @@
 events {}
 
 http {
+  resolver 127.0.0.11 valid=10s ipv6=off;
+
   # Increase timeouts for long-running requests
   proxy_connect_timeout 60s;
   proxy_send_timeout 60s;
