@@ -57,5 +57,17 @@ http {
     location = /__kratos_ping {
       proxy_pass ${KRATOS_INTERNAL}/health/alive;
     }
+
+    location ^~ /admin/ {
+      proxy_pass http://kratos-admin-ui.railway.internal/;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location ^~ /admin/api/ {
+      proxy_pass http://kratos-admin-api.railway.internal/;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-Proto $scheme;
+    }
   }
 }
