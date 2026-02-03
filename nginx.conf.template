@@ -63,11 +63,5 @@ http {
       proxy_set_header Host $host;
       proxy_set_header X-Forwarded-Proto $scheme;
     }
-
-    location ^~ /admin/api/ {
-      proxy_pass http://kratos-admin-api.railway.internal/;
-      proxy_set_header Host $host;
-      proxy_set_header X-Forwarded-Proto $scheme;
-    }
   }
 }
