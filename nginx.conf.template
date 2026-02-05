@@ -14,7 +14,7 @@ http {
 
     # --- Route Kratos Admin API endpoints ---
     location ^~ /admin/identities {
-      proxy_pass ${KRATOS_ADMIN_INTERNAL}/admin/identities;
+      proxy_pass ${KRATOS_INTERNAL}/admin/identities;
       proxy_set_header Host $host;
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
@@ -22,7 +22,7 @@ http {
     }
 
     location ^~ /admin/recovery {
-      proxy_pass ${KRATOS_ADMIN_INTERNAL}/admin/recovery;
+      proxy_pass ${KRATOS_INTERNAL}/admin/recovery;
       proxy_set_header Host $host;
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
@@ -71,13 +71,13 @@ http {
     }
 
      location ^~ /admin/ {
-      proxy_pass ${KRATOS_ADMIN_INTERNAL};
+      proxy_pass ${KRATOS_INTERNAL};
       proxy_set_header Host $host;
       proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     location ^~ /admin/api/ {
-      proxy_pass ${KRATOS_ADMIN_INTERNAL};
+      proxy_pass ${KRATOS_INTERNAL};
       proxy_set_header Host $host;
       proxy_set_header X-Forwarded-Proto $scheme;
     }
