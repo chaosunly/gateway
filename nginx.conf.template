@@ -70,16 +70,19 @@ http {
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 
-     location ^~ /admin/ {
+     location ^~ /admin/api/ {
       proxy_pass ${KRATOS_ADMIN_INTERNAL};
       proxy_set_header Host $host;
       proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    location ^~ /admin/api/ {
-      proxy_pass ${KRATOS_ADMIN_INTERNAL};
+    # --- Admin UI (self-service UI for admin operations) ---
+    location ^~ /admin/ {
+      proxy_pass ${ADMIN_UI_INTERNAL};
       proxy_set_header Host $host;
-      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 
     # --- Next.js UI (handles /admin pages, dashboard, etc.) ---
