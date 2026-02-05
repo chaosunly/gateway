@@ -12,6 +12,23 @@ http {
     listen 0.0.0.0:${PORT};
     server_name _;
 
+    # --- Route Kratos Admin API endpoints ---
+    location ^~ /admin/identities {
+      proxy_pass ${KRATOS_INTERNAL}/admin/identities;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location ^~ /admin/recovery {
+      proxy_pass ${KRATOS_INTERNAL}/admin/recovery;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
     # --- Route Kratos public endpoints ---
     location ^~ /self-service/ {
       proxy_pass ${KRATOS_INTERNAL};
@@ -45,6 +62,18 @@ http {
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 
+    location = /__kratos_ping {
+      proxy_pass ${KRATOS_INTERNAL}/health/alive;
+    }
+
+    # --- Admin UI (keep at the bottom, more specific routes above) ---
+    location ^~ /admin/ {
+      set $admin_ui http://kratos-admin-ui.railway.internal;
+      proxy_pass $admin_ui/;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     # --- Everything else goes to the UI ---
     location / {
       proxy_pass ${UI_INTERNAL};
@@ -52,17 +81,6 @@ http {
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-
-    location = /__kratos_ping {
-      proxy_pass ${KRATOS_INTERNAL}/health/alive;
-    }
-
-    location ^~ /admin/ {
-      set $admin_ui http://kratos-admin-ui.railway.internal;
-      proxy_pass $admin_ui/;
-      proxy_set_header Host $host;
-      proxy_set_header X-Forwarded-Proto $scheme;
     }
   }
 }
