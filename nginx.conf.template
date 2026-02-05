@@ -59,7 +59,8 @@ http {
     }
 
     location ^~ /admin/ {
-      proxy_pass http://kratos-admin-ui.railway.internal/;
+      set $admin_ui http://kratos-admin-ui.railway.internal;
+      proxy_pass $admin_ui/;
       proxy_set_header Host $host;
       proxy_set_header X-Forwarded-Proto $scheme;
     }
