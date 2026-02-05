@@ -14,7 +14,7 @@ http {
 
     # --- Kratos Admin API (proxied at /kratos-admin) ---
     location ^~ /kratos-admin/ {
-      proxy_pass ${KRATOS_INTERNAL}/admin/;
+      proxy_pass ${KRATOS__ADMIN_INTERNAL}/admin/;
       proxy_redirect off;
       proxy_set_header Host $host;
       proxy_set_header X-Forwarded-Proto https;
