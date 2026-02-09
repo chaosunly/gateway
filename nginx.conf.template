@@ -18,6 +18,7 @@ http {
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      # Rewrite Location headers from internal to public domain
       proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
       proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
@@ -29,6 +30,9 @@ http {
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      # Rewrite Location headers from internal to public domain
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
     location ^~ /sessions/ {
@@ -37,6 +41,9 @@ http {
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      # Rewrite Location headers from internal to public domain
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
     location ^~ /health/ {
@@ -45,6 +52,9 @@ http {
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      # Rewrite Location headers from internal to public domain
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
     # --- Keto Endpoints (if needed) ---
@@ -54,6 +64,9 @@ http {
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      # Rewrite Location headers from internal to public domain
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
     # --- Next.js UI (handles /api/*, pages, etc.) ---
@@ -63,6 +76,9 @@ http {
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      # Rewrite Location headers from internal to public domain
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
   }
 }
