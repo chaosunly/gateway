@@ -3,7 +3,6 @@ events {}
 http {
   resolver 127.0.0.11 valid=10s ipv6=off;
 
-  # Increase timeouts for long-running requests
   proxy_connect_timeout 60s;
   proxy_send_timeout 60s;
   proxy_read_timeout 60s;
@@ -12,24 +11,7 @@ http {
     listen 0.0.0.0:${PORT};
     server_name _;
 
-    # --- Kratos Admin API (order matters!) ---
-    location ^~ /admin/identities {
-      proxy_pass ${KRATOS_INTERNAL}/admin/identities;
-      proxy_set_header Host $host;
-      proxy_set_header X-Forwarded-Proto https;
-      proxy_set_header X-Forwarded-Host $host;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-
-    location ^~ /admin/recovery {
-      proxy_pass ${KRATOS_INTERNAL}/admin/recovery;
-      proxy_set_header Host $host;
-      proxy_set_header X-Forwarded-Proto https;
-      proxy_set_header X-Forwarded-Host $host;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-
-    # Catch-all for other admin endpoints
+    # --- Kratos Admin API ---
     location ^~ /admin/ {
       proxy_pass ${KRATOS_INTERNAL}/admin/;
       proxy_set_header Host $host;
@@ -57,6 +39,15 @@ http {
 
     location ^~ /health/ {
       proxy_pass ${KRATOS_INTERNAL}/health/;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # --- Keto Endpoints (if needed) ---
+    location ^~ /relation-tuples {
+      proxy_pass ${KETO_INTERNAL}/relation-tuples;
       proxy_set_header Host $host;
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
