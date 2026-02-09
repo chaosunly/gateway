@@ -11,9 +11,9 @@ http {
     listen 0.0.0.0:${PORT};
     server_name _;
 
-    # --- Kratos Admin API ---
+    # --- Kratos Admin API (⚠️ NO AUTH - ADD LATER) ---
     location ^~ /admin/ {
-      proxy_pass ${KRATOS_INTERNAL}/admin/;
+      proxy_pass ${KRATOS_INTERNAL}:4434/admin/;
       proxy_set_header Host $host;
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
@@ -25,7 +25,7 @@ http {
 
     # --- Kratos Public Endpoints ---
     location ^~ /self-service/ {
-      proxy_pass ${KRATOS_INTERNAL}/self-service/;
+      proxy_pass ${KRATOS_INTERNAL}:4433/self-service/;
       proxy_set_header Host $host;
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
@@ -36,7 +36,7 @@ http {
     }
 
     location ^~ /sessions/ {
-      proxy_pass ${KRATOS_INTERNAL}/sessions/;
+      proxy_pass ${KRATOS_INTERNAL}:4433/sessions/;
       proxy_set_header Host $host;
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
@@ -47,7 +47,7 @@ http {
     }
 
     location ^~ /health/ {
-      proxy_pass ${KRATOS_INTERNAL}/health/;
+      proxy_pass ${KRATOS_INTERNAL}:4433/health/;
       proxy_set_header Host $host;
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
@@ -59,7 +59,7 @@ http {
 
     # --- Keto Endpoints (if needed) ---
     location ^~ /relation-tuples {
-      proxy_pass ${KETO_INTERNAL}/relation-tuples;
+      proxy_pass ${KETO_INTERNAL}:4466/relation-tuples;
       proxy_set_header Host $host;
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
