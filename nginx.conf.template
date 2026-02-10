@@ -15,7 +15,7 @@ http {
     # Client-side Ory Elements/SDK requests go here
     location ^~ /.ory/ {
       rewrite ^/.ory/(.*)$ /$1 break;
-      proxy_pass ${KRATOS_INTERNAL};
+      proxy_pass http://${KRATOS_INTERNAL}:4433;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-Proto https;
@@ -28,7 +28,7 @@ http {
     # --- Kratos Admin API (⚠️ NO AUTH - ADD LATER) ---
     location ^~ /admin/ {
       rewrite ^/admin/(.*)$ /admin/$1 break;
-      proxy_pass ${KRATOS_INTERNAL};
+      proxy_pass http://${KRATOS_INTERNAL}:4434;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-Proto https;
@@ -41,7 +41,7 @@ http {
     # --- Kratos Public Endpoints ---
     location ^~ /self-service/ {
       rewrite ^/self-service/(.*)$ /self-service/$1 break;
-      proxy_pass ${KRATOS_INTERNAL};
+      proxy_pass http://${KRATOS_INTERNAL}:4433;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-Proto https;
@@ -53,7 +53,7 @@ http {
 
     location ^~ /sessions/ {
       rewrite ^/sessions/(.*)$ /sessions/$1 break;
-      proxy_pass ${KRATOS_INTERNAL};
+      proxy_pass http://${KRATOS_INTERNAL}:4433;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-Proto https;
@@ -65,7 +65,7 @@ http {
 
     location ^~ /health/ {
       rewrite ^/health/(.*)$ /health/$1 break;
-      proxy_pass ${KRATOS_INTERNAL};
+      proxy_pass http://${KRATOS_INTERNAL}:4433;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-Proto https;
@@ -77,7 +77,8 @@ http {
 
     # --- Keto Read API (permission checks, queries) ---
     location ^~ /check {
-      proxy_pass http://${KETO_INTERNAL}:4466/check;
+      rewrite ^/check(.*)$ /check$1 break;
+      proxy_pass http://${KETO_INTERNAL}:4466;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-Proto https;
@@ -88,7 +89,8 @@ http {
     }
 
     location ^~ /expand {
-      proxy_pass http://${KETO_INTERNAL}:4466/expand;
+      rewrite ^/expand(.*)$ /expand$1 break;
+      proxy_pass http://${KETO_INTERNAL}:4466;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-Proto https;
@@ -100,12 +102,13 @@ http {
 
     # --- Keto Relation Tuples (read GET, write POST/PUT/DELETE) ---
     location ^~ /relation-tuples {
-      # GET requests go to read API (4466)
-      set $keto_port 4467;
+      # GET requests go to read API (4466), writes to write API (4467)
+      set $keto_backend ${KETO_INTERNAL}:4467;
       if ($request_method = GET) {
-        set $keto_port 4466;
+        set $keto_backend ${KETO_INTERNAL}:4466;
       }
-      proxy_pass http://${KETO_INTERNAL}:$keto_port/relation-tuples;
+      rewrite ^/relation-tuples(.*)$ /relation-tuples$1 break;
+      proxy_pass http://$keto_backend;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-Proto https;
@@ -117,7 +120,7 @@ http {
 
     # --- Next.js UI (handles /api/*, pages, etc.) ---
     location / {
-      proxy_pass ${UI_INTERNAL};
+      proxy_pass http://${UI_INTERNAL}:${UI_PORT};
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-Proto https;
