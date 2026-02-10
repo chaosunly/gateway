@@ -75,10 +75,37 @@ http {
       proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
-    # --- Keto Endpoints ---
+    # --- Keto Read API (permission checks, queries) ---
+    location ^~ /check {
+      proxy_pass http://${KETO_INTERNAL}:4466/check;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
+    }
+
+    location ^~ /expand {
+      proxy_pass http://${KETO_INTERNAL}:4466/expand;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
+    }
+
+    # --- Keto Relation Tuples (read GET, write POST/PUT/DELETE) ---
     location ^~ /relation-tuples {
-      rewrite ^/relation-tuples(.*)$ /relation-tuples$1 break;
-      proxy_pass ${KETO_INTERNAL};
+      # GET requests go to read API (4466)
+      set $keto_port 4467;
+      if ($request_method = GET) {
+        set $keto_port 4466;
+      }
+      proxy_pass http://${KETO_INTERNAL}:$keto_port/relation-tuples;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-Proto https;
