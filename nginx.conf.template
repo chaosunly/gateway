@@ -31,7 +31,6 @@ http {
     server_name _;
 
     # --- CRITICAL: Ory SDK Endpoints (/.ory/*) ---
-    # Client-side Ory Elements/SDK requests go here
     location ^~ /.ory/ {
       rewrite ^/.ory/(.*)$ /$1 break;
       proxy_pass http://kratos_public;
@@ -45,9 +44,24 @@ http {
     }
 
     # --- Kratos Admin API (⚠️ NO AUTH - ADD LATER) ---
-    location ^~ /admin/ {
+    # IMPORTANT: This must come BEFORE /admin/relation-tuples to avoid conflicts
+    location ~ ^/admin/(identities|sessions|recovery|verification|courier) {
       rewrite ^/admin/(.*)$ /admin/$1 break;
       proxy_pass http://kratos_admin;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
+    }
+
+    # --- Keto Admin API (Write operations) ---
+    # This now won't conflict with Kratos admin routes
+    location ^~ /admin/relation-tuples {
+      rewrite ^/admin/relation-tuples(.*)$ /admin/relation-tuples$1 break;
+      proxy_pass http://keto_write;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-Proto https;
@@ -110,19 +124,6 @@ http {
     location ^~ /expand {
       rewrite ^/expand(.*)$ /expand$1 break;
       proxy_pass http://keto_read;
-      proxy_set_header Host $host;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-Proto https;
-      proxy_set_header X-Forwarded-Host $host;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
-      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
-    }
-
-    # --- Keto Admin API (Write operations) ---
-    location ^~ /admin/relation-tuples {
-      rewrite ^/admin/relation-tuples(.*)$ /admin/relation-tuples$1 break;
-      proxy_pass http://keto_write;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-Proto https;
