@@ -119,9 +119,22 @@ http {
       proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
-    # --- Keto Relation Tuples (read GET, write POST/PUT/DELETE) ---
+    # --- Keto Admin API (Write operations) ---
+    location ^~ /admin/relation-tuples {
+      rewrite ^/admin/relation-tuples(.*)$ /admin/relation-tuples$1 break;
+      proxy_pass http://keto_write;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
+    }
+
+    # --- Keto Relation Tuples (read GET, write POST/PUT/PATCH/DELETE) ---
     location ^~ /relation-tuples {
-      # Route based on method: GET->read, others->write
+      # Route based on method: GET/HEAD->read, others->write
       set $keto_upstream keto_write;
       if ($request_method = GET) {
         set $keto_upstream keto_read;
