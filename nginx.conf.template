@@ -43,10 +43,10 @@ http {
       proxy_redirect ~^https://[^/]+/(.*)$ https://$host/.ory/$1;
     }
 
-    # --- Kratos Admin API (⚠️ NO AUTH - ADD LATER) ---
-    # IMPORTANT: This must come BEFORE /admin/relation-tuples to avoid conflicts
-    location ~ ^/admin/(identities|sessions|recovery|verification|courier) {
-      rewrite ^/admin/(.*)$ /admin/$1 break;
+    # --- Kratos Admin API (Direct Access - separate path) ---
+    # Use /kratos-admin/* for direct API access if needed
+    location ~ ^/kratos-admin/(identities|sessions|recovery|verification|courier) {
+      rewrite ^/kratos-admin/(.*)$ /admin/$1 break;
       proxy_pass http://kratos_admin;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
@@ -58,7 +58,6 @@ http {
     }
 
     # --- Keto Admin API (Write operations) ---
-    # This now won't conflict with Kratos admin routes
     location ^~ /admin/relation-tuples {
       rewrite ^/admin/relation-tuples(.*)$ /admin/relation-tuples$1 break;
       proxy_pass http://keto_write;
@@ -168,7 +167,8 @@ http {
       proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
-    # --- Next.js UI (handles /api/*, pages, etc.) ---
+    # --- Next.js UI (handles /admin/*, /api/*, pages, etc.) ---
+    # This must come LAST so it catches all remaining routes
     location / {
       proxy_pass http://ui;
       proxy_set_header Host $host;
