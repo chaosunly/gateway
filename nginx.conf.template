@@ -30,6 +30,38 @@ http {
     listen 0.0.0.0:${PORT};
     server_name _;
 
+    # --- SimpleLogin OAuth Callback (must come before /.ory/) ---
+    location ^~ /auth/callback/simplelogin {
+      proxy_pass http://ui;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection 'upgrade';
+      proxy_cache_bypass $http_upgrade;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
+    }
+
+    # --- Auth routes (login, registration, profile completion, etc.) ---
+    location ^~ /auth/ {
+      proxy_pass http://ui;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection 'upgrade';
+      proxy_cache_bypass $http_upgrade;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
+    }
+
     # --- CRITICAL: Ory SDK Endpoints (/.ory/*) ---
     location ^~ /.ory/ {
       rewrite ^/.ory/(.*)$ /$1 break;
