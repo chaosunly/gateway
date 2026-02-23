@@ -1,8 +1,8 @@
 events {}
 
 http {
-  # Railway's internal DNS resolver
-  resolver 127.0.0.11 valid=10s ipv6=off;
+  # Use Railway's DNS resolver (dynamically detected from /etc/resolv.conf)
+  resolver ${DNS_RESOLVER} valid=10s ipv6=off;
   resolver_timeout 5s;
 
   proxy_connect_timeout 60s;
