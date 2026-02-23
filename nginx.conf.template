@@ -60,8 +60,10 @@ http {
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/.ory/$1;
-      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/.ory/$1;
+      # Only rewrite API redirects, not UI redirects (which go to /auth/*)
+      proxy_redirect ~^https?://[^/]+/self-service/(.*)$ https://$host/.ory/self-service/$1;
+      proxy_redirect ~^https?://[^/]+/sessions/(.*)$ https://$host/.ory/sessions/$1;
+      # Let other redirects pass through unchanged (e.g., /auth/* UI pages)
     }
 
     # --- Kratos Admin API (Direct Access - separate path) ---
