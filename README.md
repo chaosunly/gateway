@@ -18,12 +18,12 @@ Internet → Gateway (nginx) → Internal Services
 
 The Gateway uses environment variables for routing to internal services:
 
-| Variable          | Description                          | Example                          |
-| ----------------- | ------------------------------------ | -------------------------------- |
-| `PORT`            | Gateway listen port (set by Railway) | `8080`                           |
-| `KRATOS_INTERNAL` | Kratos internal address              | `http://kratos.railway.internal` |
-| `KETO_INTERNAL`   | Keto internal address                | `http://keto.railway.internal`   |
-| `UI_INTERNAL`     | UI internal address                  | `http://ui.railway.internal`     |
+| Variable          | Description                           | Example                   |
+| ----------------- | ------------------------------------- | ------------------------- |
+| `PORT`            | Gateway listen port (set by Railway)  | `8080`                    |
+| `KRATOS_INTERNAL` | Kratos internal hostname (no http://) | `kratos.railway.internal` |
+| `KETO_INTERNAL`   | Keto internal hostname (no http://)   | `keto.railway.internal`   |
+| `UI_INTERNAL`     | UI internal hostname (no http://)     | `ui.railway.internal`     |
 
 ## Railway Setup
 
@@ -32,11 +32,14 @@ The Gateway uses environment variables for routing to internal services:
    - Disable public networking on these services
    - Gateway will connect via Railway's private network
 3. **Set environment variables** in Gateway service:
+
    ```
-   KRATOS_INTERNAL=http://kratos.railway.internal
-   KETO_INTERNAL=http://keto.railway.internal
-   UI_INTERNAL=http://ui.railway.internal
+   KRATOS_INTERNAL=kratos.railway.internal
+   KETO_INTERNAL=keto.railway.internal
+   UI_INTERNAL=ui.railway.internal
    ```
+
+   ⚠️ **Important:** Set hostnames only (without `http://` prefix). Nginx upstream blocks expect hostnames, not URLs.
 
 ## ⚠️ Security Warning
 
