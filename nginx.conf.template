@@ -5,6 +5,7 @@ http {
   proxy_send_timeout 60s;
   proxy_read_timeout 60s;
 
+  # Define upstreams for better reliability
   upstream kratos_public {
     server ${KRATOS_INTERNAL}:4433;
   }
@@ -33,6 +34,7 @@ http {
     listen 0.0.0.0:${PORT};
     server_name _;
 
+    # --- CRITICAL: Ory SDK Endpoints (/.ory/*) ---
     location ^~ /.ory/ {
       rewrite ^/.ory/(.*)$ /$1 break;
       proxy_pass http://kratos_public;
@@ -41,8 +43,12 @@ http {
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/.ory/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/.ory/$1;
     }
 
+    # --- Kratos Admin API (Direct Access - separate path) ---
+    # Use /kratos-admin/* for direct API access if needed
     location ~ ^/kratos-admin/(identities|sessions|recovery|verification|courier) {
       rewrite ^/kratos-admin/(.*)$ /admin/$1 break;
       proxy_pass http://kratos_admin;
@@ -51,8 +57,11 @@ http {
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
+    # --- Keto Admin API (Write operations) ---
     location ^~ /admin/relation-tuples {
       rewrite ^/admin/relation-tuples(.*)$ /admin/relation-tuples$1 break;
       proxy_pass http://keto_write;
@@ -61,37 +70,48 @@ http {
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
-    # Kratos public API
+    # --- Kratos Public Endpoints ---
     location ^~ /self-service/ {
+      rewrite ^/self-service/(.*)$ /self-service/$1 break;
       proxy_pass http://kratos_public;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
     location ^~ /sessions/ {
+      rewrite ^/sessions/(.*)$ /sessions/$1 break;
       proxy_pass http://kratos_public;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
     location ^~ /health/ {
+      rewrite ^/health/(.*)$ /health/$1 break;
       proxy_pass http://kratos_public;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
-    # Hydra OAuth2
+    # --- Hydra OAuth2/OIDC Public API ---
     location ^~ /.well-known/ {
       proxy_pass http://hydra_public;
       proxy_set_header Host $host;
@@ -99,6 +119,8 @@ http {
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
     location ^~ /oauth2/ {
@@ -108,37 +130,51 @@ http {
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
-    # Keto
+    # --- Keto Read API (permission checks, queries) ---
     location ^~ /check {
+      rewrite ^/check(.*)$ /check$1 break;
       proxy_pass http://keto_read;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
     location ^~ /expand {
+      rewrite ^/expand(.*)$ /expand$1 break;
       proxy_pass http://keto_read;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
+    # --- Keto Permission Check (POST but on read API) ---
     location ^~ /relation-tuples/check {
+      rewrite ^/relation-tuples/check(.*)$ /relation-tuples/check$1 break;
       proxy_pass http://keto_read;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
+    # --- Keto Relation Tuples (read GET, write POST/PUT/PATCH/DELETE) ---
     location ^~ /relation-tuples {
+      # Route based on method: GET/HEAD->read, others->write
       set $keto_upstream keto_write;
       if ($request_method = GET) {
         set $keto_upstream keto_read;
@@ -146,6 +182,7 @@ http {
       if ($request_method = HEAD) {
         set $keto_upstream keto_read;
       }
+      
       rewrite ^/relation-tuples(.*)$ /relation-tuples$1 break;
       proxy_pass http://$keto_upstream;
       proxy_set_header Host $host;
@@ -153,9 +190,12 @@ http {
       proxy_set_header X-Forwarded-Proto https;
       proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
-    # UI - must be last
+    # --- Next.js UI (handles /admin/*, /api/*, pages, etc.) ---
+    # This must come LAST so it catches all remaining routes
     location / {
       proxy_pass http://ui;
       proxy_set_header Host $host;
@@ -167,6 +207,8 @@ http {
       proxy_set_header Upgrade $http_upgrade;
       proxy_set_header Connection 'upgrade';
       proxy_cache_bypass $http_upgrade;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
   }
 }
