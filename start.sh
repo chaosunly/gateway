@@ -17,7 +17,7 @@ fi
 echo "Using DNS resolver: ${DNS_RESOLVER}"
 
 # Render nginx config using env vars
-envsubst '${PORT} ${KRATOS_INTERNAL} ${UI_INTERNAL} ${UI_PORT} ${KETO_INTERNAL} ${DNS_RESOLVER}' \
+envsubst '${PORT} ${KRATOS_INTERNAL} ${HYDRA_INTERNAL} ${UI_INTERNAL} ${UI_PORT} ${KETO_INTERNAL} ${DNS_RESOLVER}' \
   < /etc/nginx/templates/nginx.conf.template \
   > /etc/nginx/nginx.conf
 
