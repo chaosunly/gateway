@@ -16,6 +16,7 @@ http {
     # Set variables for dynamic DNS resolution
     set $kratos_host ${KRATOS_INTERNAL};
     set $keto_host ${KETO_INTERNAL};
+    set $hydra_host ${HYDRA_INTERNAL};
     set $ui_host ${UI_INTERNAL};
     set $ui_port ${UI_PORT};
 
@@ -64,6 +65,20 @@ http {
       proxy_redirect ~^https?://[^/]+/self-service/(.*)$ https://$host/.ory/self-service/$1;
       proxy_redirect ~^https?://[^/]+/sessions/(.*)$ https://$host/.ory/sessions/$1;
       # Let other redirects pass through unchanged (e.g., /auth/* UI pages)
+    }
+
+    # --- Hydra Public API (OAuth2/OIDC Endpoints) ---
+    location ^~ /oauth2/ {
+      proxy_pass http://$hydra_host:4444;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_http_version 1.1;
+      proxy_set_header Cookie $http_cookie;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
     # --- Kratos Admin API (Direct Access - separate path) ---
