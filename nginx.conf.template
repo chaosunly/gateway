@@ -206,22 +206,24 @@ http {
     }
 
     # --- Protected Application API Routes (via Oathkeeper) ---
+    # TEMPORARILY DISABLED: /api/* now falls through to the ui catch-all below.
+    # Re-enable once Oathkeeper is stable (fix remote_json config + api-oauth2-public rule).
     # Oathkeeper validates the Kratos session cookie or Hydra bearer token,
     # optionally checks Keto permissions, then proxies to the UI upstream.
     # Rules in oathkeeper/rules.json determine per-path auth requirements:
     #   /api/auth/*   → anonymous (public: Kratos webhooks, OAuth callbacks)
     #   /api/admin/*  → authenticated + Keto GlobalRole:admin check
     #   /api/*        → authenticated (cookie session or bearer token)
-    location ^~ /api/ {
-      proxy_pass http://$oathkeeper_host:4455;
-      proxy_set_header Host $host;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-Proto https;
-      proxy_set_header X-Forwarded-Host $host;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
-      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
-    }
+    #location ^~ /api/ {
+    #  proxy_pass http://$oathkeeper_host:4455;
+    #  proxy_set_header Host $host;
+    #  proxy_set_header X-Real-IP $remote_addr;
+    #  proxy_set_header X-Forwarded-Proto https;
+    #  proxy_set_header X-Forwarded-Host $host;
+    #  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    #  proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+    #  proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
+    #}
 
     # --- Next.js UI (handles /admin/*, pages, etc.) ---
     # This must come LAST so it catches all remaining routes
