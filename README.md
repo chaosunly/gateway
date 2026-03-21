@@ -1,130 +1,117 @@
 # Gateway Service
 
-This is the single public-facing service that routes all traffic to internal services.
+Single public-facing nginx edge that routes all traffic. No other service is publicly exposed.
 
 ## Architecture
 
-```
-Internet → Gateway (nginx) → Internal Services
-                ├─ /admin/*          → Kratos Admin (port 4434)
-                ├─ /self-service/*   → Kratos Public (port 4433)
-                ├─ /sessions/*       → Kratos Public (port 4433)
-                ├─ /health/*         → Kratos Public (port 4433)
-                ├─ /relation-tuples  → Keto (port 4466)
-                └─ /*                → UI Application
-```
-
-## Configuration
-
-The Gateway uses environment variables for routing to internal services:
-
-| Variable          | Description                           | Example                   |
-| ----------------- | ------------------------------------- | ------------------------- |
-| `PORT`            | Gateway listen port (set by Railway)  | `8080`                    |
-| `KRATOS_INTERNAL` | Kratos internal hostname (no http://) | `kratos.railway.internal` |
-| `KETO_INTERNAL`   | Keto internal hostname (no http://)   | `keto.railway.internal`   |
-| `UI_INTERNAL`     | UI internal hostname (no http://)     | `ui.railway.internal`     |
-
-## Railway Setup
-
-1. **Deploy Gateway service** with public access
-2. **Deploy other services** (Kratos, Keto, UI) as internal-only:
-   - Disable public networking on these services
-   - Gateway will connect via Railway's private network
-3. **Set environment variables** in Gateway service:
-
-   ```
-   KRATOS_INTERNAL=kratos.railway.internal
-   KETO_INTERNAL=keto.railway.internal
-   UI_INTERNAL=ui.railway.internal
-   ```
-
-   ⚠️ **Important:** Set hostnames only (without `http://` prefix). Nginx upstream blocks expect hostnames, not URLs.
-
-## ⚠️ Security Warning
-
-**The admin API at `/admin/*` is currently exposed without authentication!**
-
-This allows full control over your identity system. Add authentication before production use.
-
-## Adding Authentication to Admin API
-
-Edit [nginx.conf.template](nginx.conf.template) to add authentication:
-
-### Option 1: Basic Auth
-
-```nginx
-location ^~ /admin/ {
-  auth_basic "Admin Access";
-  auth_basic_user_file /etc/nginx/.htpasswd;
-
-  proxy_pass ${KRATOS_INTERNAL}:4434/admin/;
-  # ... (keep existing proxy headers)
-}
+```text
+Internet → Gateway (nginx)
+            │
+            ├─ /.ory/*                      → Kratos public API  (port 4433)
+            ├─ /oauth2/*                    → Hydra public API   (port 4444)
+            ├─ /self-service/*              → Kratos public API  (port 4433)
+            ├─ /sessions/*                  → Kratos public API  (port 4433)
+            ├─ /health/*                    → Kratos public API  (port 4433)
+            │
+            ├─ /auth/*                      → UI (public – login/register pages)
+            ├─ /auth/callback/simplelogin   → UI (public – OAuth callback)
+            │
+            ├─ /api/*  ──► Oathkeeper (4455) ──► UI (protected API routes)
+            │         cookie_session (Kratos) │
+            │         oauth2_introspection    │
+            │         (Hydra) + Keto for      │
+            │         admin routes            │
+            │
+            ├─ /relation-tuples/*           → Keto read API  (port 4466) ⚠ public
+            ├─ /check                        → Keto read API  (port 4466) ⚠ public
+            ├─ /expand                       → Keto read API  (port 4466) ⚠ public
+            ├─ /admin/relation-tuples        → Keto write API (port 4467) ⚠ public
+            ├─ /kratos-admin/*               → Kratos admin   (port 4434) ⚠ public
+            │
+            └─ /*                           → UI (Next.js catch-all)
 ```
 
-Build with htpasswd file:
+### Oathkeeper integration (request flow for `/api/*`)
 
-```dockerfile
-RUN apk add --no-cache apache2-utils
-RUN htpasswd -bc /etc/nginx/.htpasswd admin your-password
+```text
+Browser/Client
+  │  GET /api/dashboard   (session cookie or Bearer token)
+  ▼
+nginx  →  Oathkeeper proxy (port 4455)
+              │
+              ├─ Authenticates via Kratos /sessions/whoami  (cookie_session)
+              │    OR Hydra /oauth2/introspect               (oauth2_introspection)
+              │
+              ├─ /api/auth/*   → anonymous, allow            → UI
+              ├─ /api/admin/*  → authenticated + Keto GlobalRole:admin check → UI
+              └─ /api/*        → authenticated, allow        → UI
+                                 (X-User-Id header forwarded to UI)
 ```
 
-### Option 2: API Key Header
+## Environment Variables
 
-```nginx
-location ^~ /admin/ {
-  if ($http_x_api_key != "${ADMIN_API_KEY}") {
-    return 401 "Unauthorized";
-  }
+### Gateway service
 
-  proxy_pass ${KRATOS_INTERNAL}:4434/admin/;
-  # ... (keep existing proxy headers)
-}
-```
+| Variable              | Description                                 | Example                       |
+| --------------------- | ------------------------------------------- | ----------------------------- |
+| `PORT`                | Gateway listen port (set by Railway)        | `8080`                        |
+| `KRATOS_INTERNAL`     | Kratos internal hostname (no `http://`)     | `kratos.railway.internal`     |
+| `HYDRA_INTERNAL`      | Hydra internal hostname (no `http://`)      | `hydra.railway.internal`      |
+| `KETO_INTERNAL`       | Keto internal hostname (no `http://`)       | `keto.railway.internal`       |
+| `OATHKEEPER_INTERNAL` | Oathkeeper internal hostname (no `http://`) | `oathkeeper.railway.internal` |
+| `UI_INTERNAL`         | UI internal hostname (no `http://`)         | `ui.railway.internal`         |
+| `UI_PORT`             | UI listen port                              | `8080`                        |
 
-Add `ADMIN_API_KEY` environment variable and update start.sh:
+### Oathkeeper service
 
-```bash
-envsubst '${PORT} ${KRATOS_INTERNAL} ${UI_INTERNAL} ${KETO_INTERNAL} ${ADMIN_API_KEY}'
-```
+| Variable          | Description                                           | Example                       |
+| ----------------- | ----------------------------------------------------- | ----------------------------- |
+| `KRATOS_INTERNAL` | Kratos internal hostname                              | `kratos.railway.internal`     |
+| `HYDRA_INTERNAL`  | Hydra internal hostname                               | `hydra.railway.internal`      |
+| `KETO_INTERNAL`   | Keto internal hostname                                | `keto.railway.internal`       |
+| `UI_INTERNAL`     | UI internal hostname                                  | `ui.railway.internal`         |
+| `UI_PORT`         | UI listen port                                        | `8080`                        |
+| `PUBLIC_URL`      | Full public base URL of the gateway (no trailing `/`) | `https://gateway.railway.app` |
 
-### Option 3: IP Whitelist
+## Public routes (bypass Oathkeeper by design)
 
-```nginx
-location ^~ /admin/ {
-  # Only allow from Railway private network
-  allow 10.0.0.0/8;
-  deny all;
+These routes exist for auth flows and must remain unauthenticated at the gateway level:
 
-  proxy_pass ${KRATOS_INTERNAL}:4434/admin/;
-  # ... (keep existing proxy headers)
-}
-```
+| Route              | Reason                                                              |
+| ------------------ | ------------------------------------------------------------------- |
+| `/.ory/*`          | Kratos SDK self-service flows (login, registration)                 |
+| `/oauth2/*`        | Hydra authorization and token endpoints                             |
+| `/self-service/*`  | Kratos self-service flows (direct path)                             |
+| `/sessions/whoami` | Session check used by UI and Oathkeeper                             |
+| `/health/*`        | Health probes                                                       |
+| `/auth/*`          | UI login/registration/settings pages                                |
+| `/api/auth/*`      | Kratos webhooks (e.g., registration-hook) and OAuth relay endpoints |
 
-### Option 4: OAuth2 Proxy (Recommended for Production)
+## ⚠ Security gaps (pre-existing, require follow-up)
 
-Use [OAuth2 Proxy](https://oauth2-proxy.github.io/oauth2-proxy/) as a sidecar:
+The following routes are exposed without authentication. These existed before the Oathkeeper integration and should be secured before production:
 
-- Deploy OAuth2 Proxy in Gateway
-- Configure with your identity provider
-- Route `/admin/*` through OAuth2 Proxy first
+| Route                                   | Exposed API         | Risk                                                          |
+| --------------------------------------- | ------------------- | ------------------------------------------------------------- |
+| `/kratos-admin/*`                       | Kratos Admin (4434) | Full identity management (create/delete identities, sessions) |
+| `/admin/relation-tuples`                | Keto Write (4467)   | Write arbitrary permission tuples                             |
+| `/relation-tuples`, `/check`, `/expand` | Keto Read (4466)    | Read all permission data                                      |
 
-## Maintenance
+**Recommended mitigations:**
 
-### Updating Routes
+- Route these through Oathkeeper with an `oauth2_introspection` authenticator and a `remote_json` Keto check for `GlobalRole:admin`
+- Or restrict them to Railway's internal network only (remove the gateway locations entirely)
+- Minimum: add an `X-Api-Key` header check in nginx for these paths
 
-Edit [nginx.conf.template](nginx.conf.template) to add/modify routes.
+## Railway deployment setup
 
-### Testing Configuration
-
-```bash
-# Check nginx config syntax
-docker run --rm -v $(pwd)/nginx.conf.template:/etc/nginx/nginx.conf:ro nginx:alpine nginx -t -c /etc/nginx/nginx.conf
-```
+1. Deploy all services (Kratos, Hydra, Keto, Oathkeeper, UI) with **public networking disabled**
+2. Deploy the Gateway with **public networking enabled**
+3. Set the environment variables listed above on each service
+4. The Gateway is the only service that needs a public Railway domain
 
 ## Files
 
-- `Dockerfile` - Builds nginx image with envsubst
-- `nginx.conf.template` - nginx configuration with variable placeholders
-- `start.sh` - Entrypoint that substitutes environment variables and starts nginx
+- [Dockerfile](Dockerfile) — builds nginx image with `envsubst` and start script
+- [nginx.conf.template](nginx.conf.template) — nginx config with `${VAR}` placeholders
+- [start.sh](start.sh) — entrypoint: resolves DNS, runs `envsubst`, starts nginx

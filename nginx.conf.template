@@ -19,6 +19,7 @@ http {
     set $hydra_host ${HYDRA_INTERNAL};
     set $ui_host ${UI_INTERNAL};
     set $ui_port ${UI_PORT};
+    set $oathkeeper_host ${OATHKEEPER_INTERNAL};
 
     # --- SimpleLogin OAuth Callback (must come before /.ory/) ---
     location ^~ /auth/callback/simplelogin {
@@ -204,7 +205,25 @@ http {
       proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
-    # --- Next.js UI (handles /admin/*, /api/*, pages, etc.) ---
+    # --- Protected Application API Routes (via Oathkeeper) ---
+    # Oathkeeper validates the Kratos session cookie or Hydra bearer token,
+    # optionally checks Keto permissions, then proxies to the UI upstream.
+    # Rules in oathkeeper/rules.json determine per-path auth requirements:
+    #   /api/auth/*   → anonymous (public: Kratos webhooks, OAuth callbacks)
+    #   /api/admin/*  → authenticated + Keto GlobalRole:admin check
+    #   /api/*        → authenticated (cookie session or bearer token)
+    location ^~ /api/ {
+      proxy_pass http://$oathkeeper_host:4455;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
+    }
+
+    # --- Next.js UI (handles /admin/*, pages, etc.) ---
     # This must come LAST so it catches all remaining routes
     location / {
       proxy_pass http://$ui_host:$ui_port;
