@@ -19,7 +19,8 @@ http {
     set $hydra_host ${HYDRA_INTERNAL};
     set $ui_host ${UI_INTERNAL};
     set $ui_port ${UI_PORT};
-    set $oathkeeper_host ${OATHKEEPER_INTERNAL};
+    # Oathkeeper is currently disabled for /api routing.
+    # Keep this unset to avoid startup failures when OATHKEEPER_INTERNAL is missing.
 
     # --- SimpleLogin OAuth Callback (must come before /.ory/) ---
     location ^~ /auth/callback/simplelogin {
