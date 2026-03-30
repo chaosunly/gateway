@@ -66,8 +66,9 @@ http {
       proxy_set_header Upgrade $http_upgrade;
       proxy_set_header Connection 'upgrade';
       proxy_cache_bypass $http_upgrade;
-      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
-      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
+      # Only rewrite internal 0.0.0.0 addresses; do NOT rewrite cross-domain redirects
+      # (iam-app intentionally redirects the login_verifier to nginx domain for CSRF cookie continuity)
+      proxy_redirect ~^https?://0\.0\.0\.0:[0-9]+/(.*)$ https://$host/$1;
     }
 
     # --- OAuth2 /login shortcut (Hydra redirects here) ---
@@ -84,8 +85,9 @@ http {
       proxy_set_header Upgrade $http_upgrade;
       proxy_set_header Connection 'upgrade';
       proxy_cache_bypass $http_upgrade;
-      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
-      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
+      # Only rewrite internal 0.0.0.0 addresses; do NOT rewrite cross-domain redirects
+      # (iam-app intentionally redirects the login_verifier to nginx domain for CSRF cookie continuity)
+      proxy_redirect ~^https?://0\.0\.0\.0:[0-9]+/(.*)$ https://$host/$1;
     }
 
     # --- CRITICAL: Ory SDK Endpoints (/.ory/*) ---
