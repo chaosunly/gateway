@@ -103,7 +103,27 @@ http {
       # Let other redirects pass through unchanged (e.g., /auth/* UI pages)
     }
 
-    # --- Hydra Public API (OAuth2/OIDC Endpoints) ---
+    # --- Hydra Authorization Endpoint ---
+    # Inject prompt=login so Hydra always issues a fresh login_challenge instead of
+    # silently reusing a remembered session (e.g. penghout). The gateway login handler
+    # then resolves the challenge using the current Kratos session (the correct user).
+    location = /oauth2/auth {
+      set $args_with_prompt $args;
+      if ($arg_prompt = "") {
+        set $args_with_prompt "${args}&prompt=login";
+      }
+      proxy_pass http://$hydra_host:4444/oauth2/auth?$args_with_prompt;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_http_version 1.1;
+      proxy_set_header Cookie $http_cookie;
+      proxy_redirect off;
+    }
+
+    # --- Hydra Public API (other OAuth2/OIDC Endpoints) ---
     location ^~ /oauth2/ {
       proxy_pass http://$hydra_host:4444;
       proxy_set_header Host $host;
