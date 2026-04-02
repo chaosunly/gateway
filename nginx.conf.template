@@ -110,7 +110,7 @@ http {
     location = /oauth2/auth {
       set $args_with_prompt $args;
       if ($arg_prompt = "") {
-        set $args_with_prompt "${args}&prompt=login";
+        set $args_with_prompt "$args&prompt=login";
       }
       proxy_pass http://$hydra_host:4444/oauth2/auth?$args_with_prompt;
       proxy_set_header Host $host;
