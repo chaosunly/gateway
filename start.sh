@@ -3,6 +3,16 @@ set -e
 
 # Default UI_PORT if not set (Next.js default is 8080)
 export UI_PORT="${UI_PORT:-8080}"
+export PORT="${PORT:-8080}"
+
+# Fail fast with clear errors for required upstream hosts.
+for var in KRATOS_INTERNAL HYDRA_INTERNAL KETO_INTERNAL UI_INTERNAL; do
+  eval "value=\${$var}"
+  if [ -z "$value" ]; then
+    echo "ERROR: Missing required environment variable: $var"
+    exit 1
+  fi
+done
 
 # Get DNS resolver from /etc/resolv.conf (Railway's DNS server)
 DNS_SERVER=$(awk '/^nameserver/ {print $2; exit}' /etc/resolv.conf)
@@ -17,7 +27,7 @@ fi
 echo "Using DNS resolver: ${DNS_RESOLVER}"
 
 # Render nginx config using env vars
-envsubst '${PORT} ${KRATOS_INTERNAL} ${HYDRA_INTERNAL} ${UI_INTERNAL} ${UI_PORT} ${KETO_INTERNAL} ${OATHKEEPER_INTERNAL} ${DNS_RESOLVER}' \
+envsubst '${PORT} ${KRATOS_INTERNAL} ${HYDRA_INTERNAL} ${UI_INTERNAL} ${UI_PORT} ${KETO_INTERNAL} ${DNS_RESOLVER}' \
   < /etc/nginx/templates/nginx.conf.template \
   > /etc/nginx/nginx.conf
 

@@ -19,7 +19,8 @@ http {
     set $hydra_host ${HYDRA_INTERNAL};
     set $ui_host ${UI_INTERNAL};
     set $ui_port ${UI_PORT};
-    set $oathkeeper_host ${OATHKEEPER_INTERNAL};
+    # Oathkeeper is currently disabled for /api routing.
+    # Keep this unset to avoid startup failures when OATHKEEPER_INTERNAL is missing.
 
     # --- SimpleLogin OAuth Callback (must come before /.ory/) ---
     location ^~ /auth/callback/simplelogin {
@@ -39,6 +40,40 @@ http {
 
     # --- Auth routes (login, registration, profile completion, etc.) ---
     location ^~ /auth/ {
+      proxy_pass http://$ui_host:$ui_port;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection 'upgrade';
+      proxy_cache_bypass $http_upgrade;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
+    }
+
+    # --- OAuth2 API routes (login, logout, etc.) ---
+    location ^~ /api/oauth2/ {
+      proxy_pass http://$ui_host:$ui_port;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection 'upgrade';
+      proxy_cache_bypass $http_upgrade;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
+    }
+
+    # --- OAuth2 /login shortcut (Hydra redirects here) ---
+    location ^~ /login {
+      # Rewrite /login?... to /api/oauth2/login?... internally
+      rewrite ^/login(.*)$ /api/oauth2/login$1 break;
       proxy_pass http://$ui_host:$ui_port;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
@@ -78,8 +113,7 @@ http {
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
       proxy_http_version 1.1;
       proxy_set_header Cookie $http_cookie;
-      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
-      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect off;
     }
 
     # --- Kratos Admin API (Direct Access - separate path) ---
