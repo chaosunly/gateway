@@ -6,7 +6,7 @@ export UI_PORT="${UI_PORT:-8080}"
 export PORT="${PORT:-8080}"
 
 # Fail fast with clear errors for required upstream hosts.
-for var in KRATOS_INTERNAL HYDRA_INTERNAL KETO_INTERNAL UI_INTERNAL; do
+for var in KRATOS_INTERNAL HYDRA_INTERNAL KETO_INTERNAL UI_INTERNAL OATHKEEPER_INTERNAL; do
   eval "value=\${$var}"
   if [ -z "$value" ]; then
     echo "ERROR: Missing required environment variable: $var"
@@ -27,7 +27,7 @@ fi
 echo "Using DNS resolver: ${DNS_RESOLVER}"
 
 # Render nginx config using env vars
-envsubst '${PORT} ${KRATOS_INTERNAL} ${HYDRA_INTERNAL} ${UI_INTERNAL} ${UI_PORT} ${KETO_INTERNAL} ${DNS_RESOLVER}' \
+envsubst '${PORT} ${KRATOS_INTERNAL} ${HYDRA_INTERNAL} ${UI_INTERNAL} ${UI_PORT} ${KETO_INTERNAL} ${DNS_RESOLVER} ${OATHKEEPER_INTERNAL}' \
   < /etc/nginx/templates/nginx.conf.template \
   > /etc/nginx/nginx.conf
 
