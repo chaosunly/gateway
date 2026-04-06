@@ -19,8 +19,7 @@ http {
     set $hydra_host ${HYDRA_INTERNAL};
     set $ui_host ${UI_INTERNAL};
     set $ui_port ${UI_PORT};
-    # Oathkeeper is currently disabled for /api routing.
-    # Keep this unset to avoid startup failures when OATHKEEPER_INTERNAL is missing.
+    set $oathkeeper_host ${OATHKEEPER_INTERNAL};
 
     # --- SimpleLogin OAuth Callback (must come before /.ory/) ---
     location ^~ /auth/callback/simplelogin {
@@ -240,8 +239,6 @@ http {
     }
 
     # --- Protected Application API Routes (via Oathkeeper) ---
-    # TEMPORARILY DISABLED: /api/* now falls through to the ui catch-all below.
-    # Re-enable once Oathkeeper is stable (fix remote_json config + api-oauth2-public rule).
     # Oathkeeper validates the Kratos session cookie or Hydra bearer token,
     # optionally checks Keto permissions, then proxies to the UI upstream.
     # Rules in oathkeeper/rules.json determine per-path auth requirements:
