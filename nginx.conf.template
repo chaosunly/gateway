@@ -54,9 +54,10 @@ http {
     }
 
     # --- OAuth2 API routes (login, logout, etc.) ---
-    # proxy_redirect must be off: login/consent handlers redirect to Hydra's domain
-    # directly, and rewriting the Location header back to the gateway domain strips
-    # the Hydra CSRF session cookie from subsequent requests.
+    # Rewrite all Location headers to https://$host so the browser always returns to
+    # the gateway domain over HTTPS. Hydra's CSRF session cookie is set on the gateway
+    # domain (MAS uses ${GATEWAY_URL}/oauth2/auth as the authorization endpoint), so
+    # the consent_verifier and login_verifier redirects must come back through here.
     location ^~ /api/oauth2/ {
       proxy_pass http://$ui_host:$ui_port;
       proxy_set_header Host $host;
@@ -68,7 +69,8 @@ http {
       proxy_set_header Upgrade $http_upgrade;
       proxy_set_header Connection 'upgrade';
       proxy_cache_bypass $http_upgrade;
-      proxy_redirect off;
+      proxy_redirect ~^http://[^/]+/(.*)$ https://$host/$1;
+      proxy_redirect ~^https://[^/]+/(.*)$ https://$host/$1;
     }
 
     # --- OAuth2 /login shortcut (Hydra redirects here) ---
