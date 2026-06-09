@@ -12,6 +12,8 @@ Internet → Gateway (nginx)
             ├─ /self-service/*              → Kratos public API  (port 4433)
             ├─ /sessions/*                  → Kratos public API  (port 4433)
             ├─ /health/*                    → Kratos public API  (port 4433)
+            ├─ /talos/*                     → Talos API         (port 4420)
+            ├─ /talos/health/*              → Talos health      (port 4422)
             │
             ├─ /auth/*                      → UI (public – login/register pages)
             ├─ /auth/callback/simplelogin   → UI (public – OAuth callback)
@@ -26,6 +28,7 @@ Internet → Gateway (nginx)
             ├─ /check                        → Keto read API  (port 4466) ⚠ public
             ├─ /expand                       → Keto read API  (port 4466) ⚠ public
             ├─ /admin/relation-tuples        → Keto write API (port 4467) ⚠ public
+            ├─ /talos/*                      → Talos API      (port 4420) ⚠ public
             ├─ /kratos-admin/*               → Kratos admin   (port 4434) ⚠ public
             │
             └─ /*                           → UI (Next.js catch-all)
@@ -58,6 +61,7 @@ nginx  →  Oathkeeper proxy (port 4455)
 | `KRATOS_INTERNAL`     | Kratos internal hostname (no `http://`)     | `kratos.railway.internal`     |
 | `HYDRA_INTERNAL`      | Hydra internal hostname (no `http://`)      | `hydra.railway.internal`      |
 | `KETO_INTERNAL`       | Keto internal hostname (no `http://`)       | `keto.railway.internal`       |
+| `TALOS_INTERNAL`      | Talos internal hostname (no `http://`)      | `talos.railway.internal`      |
 | `OATHKEEPER_INTERNAL` | Oathkeeper internal hostname (no `http://`) | `oathkeeper.railway.internal` |
 | `UI_INTERNAL`         | UI internal hostname (no `http://`)         | `ui.railway.internal`         |
 | `UI_PORT`             | UI listen port                              | `8080`                        |
@@ -69,6 +73,7 @@ nginx  →  Oathkeeper proxy (port 4455)
 | `KRATOS_INTERNAL` | Kratos internal hostname                              | `kratos.railway.internal`     |
 | `HYDRA_INTERNAL`  | Hydra internal hostname                               | `hydra.railway.internal`      |
 | `KETO_INTERNAL`   | Keto internal hostname                                | `keto.railway.internal`       |
+| `TALOS_INTERNAL`  | Talos internal hostname                               | `talos.railway.internal`      |
 | `UI_INTERNAL`     | UI internal hostname                                  | `ui.railway.internal`         |
 | `UI_PORT`         | UI listen port                                        | `8080`                        |
 | `PUBLIC_URL`      | Full public base URL of the gateway (no trailing `/`) | `https://gateway.railway.app` |
@@ -84,6 +89,7 @@ These routes exist for auth flows and must remain unauthenticated at the gateway
 | `/self-service/*`  | Kratos self-service flows (direct path)                             |
 | `/sessions/whoami` | Session check used by UI and Oathkeeper                             |
 | `/health/*`        | Health probes                                                       |
+| `/talos/*`         | Talos API key management and self-revocation                        |
 | `/auth/*`          | UI login/registration/settings pages                                |
 | `/api/auth/*`      | Kratos webhooks (e.g., registration-hook) and OAuth relay endpoints |
 
@@ -96,6 +102,7 @@ The following routes are exposed without authentication. These existed before th
 | `/kratos-admin/*`                       | Kratos Admin (4434) | Full identity management (create/delete identities, sessions) |
 | `/admin/relation-tuples`                | Keto Write (4467)   | Write arbitrary permission tuples                             |
 | `/relation-tuples`, `/check`, `/expand` | Keto Read (4466)    | Read all permission data                                      |
+| `/talos/*`                              | Talos (4420/4422)   | Issue, verify, derive, and revoke API keys                    |
 
 **Recommended mitigations:**
 
@@ -105,7 +112,7 @@ The following routes are exposed without authentication. These existed before th
 
 ## Railway deployment setup
 
-1. Deploy all services (Kratos, Hydra, Keto, Oathkeeper, UI) with **public networking disabled**
+1. Deploy all services (Kratos, Hydra, Keto, Talos, Oathkeeper, UI) with **public networking disabled**
 2. Deploy the Gateway with **public networking enabled**
 3. Set the environment variables listed above on each service
 4. The Gateway is the only service that needs a public Railway domain
