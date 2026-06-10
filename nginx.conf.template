@@ -190,7 +190,7 @@ http {
 
     location ^~ /talos/ {
       rewrite ^/talos/(.*)$ /$1 break;
-      proxy_pass http://$talos_host:4420;
+      proxy_pass http://$talos_host:8080;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-Proto https;
